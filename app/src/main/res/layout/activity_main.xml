@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:weightSum="3"
     android:backgroundTint="#646464">
@@ -27,6 +27,7 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:orientation="vertical"
+        android:gravity="center"
         android:background="#969696">
 
 
@@ -35,21 +36,24 @@
             android:layout_height="wrap_content"
             android:text="Sensing via Bluetooth"
             android:id="@+id/switchBluetooth"
-            android:layout_gravity="center" />
+            android:layout_gravity="center"
+            app:switchPadding="35dp"/>
 
         <android.support.v7.widget.SwitchCompat
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Sensing via Microphone"
             android:id="@+id/switchMicrophone"
-            android:layout_gravity="center" />
+            android:layout_gravity="center"
+            app:switchPadding="21dp"/>
 
         <android.support.v7.widget.SwitchCompat
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Sensing via GPS"
             android:id="@+id/switchGPS"
-            android:layout_gravity="center" />
+            android:layout_gravity="center"
+            app:switchPadding="69dp"/>
 
     </LinearLayout>
 

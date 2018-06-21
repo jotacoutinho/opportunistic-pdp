@@ -31,6 +31,9 @@ public class MainActivity extends AppCompatActivity {
         final Toast microphoneAlert = Toast.makeText(this.getApplicationContext(), "Microphone activated!", Toast.LENGTH_SHORT);
         final Toast gpsAlert = Toast.makeText(this.getApplicationContext(), "GPS activated!", Toast.LENGTH_SHORT);
 
+        startButtonView.getLayoutParams().height = 135;
+        startButtonView.getLayoutParams().height = 135;
+
         bluetoothSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
