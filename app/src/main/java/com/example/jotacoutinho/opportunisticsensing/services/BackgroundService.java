@@ -1,16 +1,28 @@
 package com.example.jotacoutinho.opportunisticsensing.services;
 
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.media.MediaRecorder;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
+import com.example.jotacoutinho.opportunisticsensing.R;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,18 +30,25 @@ public class BackgroundService extends Service {
 
     private BluetoothAdapter adapter;
     private List<String> devicesList = new ArrayList<String>();
+    Thread micRecordingThread;
+    private MediaRecorder recorder = null;
+    private LocationManager locationManager = null;
+    private LocationListener locationListener = null;
+    double latitude, longitude, altitude = 0;
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
         return null;
     }
+    
 
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
+    public int onStartCommand(Intent intent, int flags, int startId) throws SecurityException {
         // do your jobs here
 
         if(intent.getExtras() == null){
+            Log.i("OSApp", "no options selected");
             return START_NOT_STICKY;
         }
 
@@ -44,6 +63,37 @@ public class BackgroundService extends Service {
             registerReceiver(btReceiver, filter);
         }
 
+        if(intent.getExtras().get("mic-enabled").equals(true)){
+            if(recorder == null){
+                micRecordingThread = new Thread() {
+                    @Override
+                    public void run() {
+                        recorder = new MediaRecorder();
+                        try{
+                            recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+                            recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+                            recorder.setOutputFile(getExternalCacheDir().getAbsolutePath() + "/osappsensoring.3gp");
+                            Log.i("OSApp", getExternalCacheDir().getAbsolutePath());
+                            recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+                            recorder.prepare();
+                            recorder.start();
+                        } catch(IOException e){
+                            e.printStackTrace();
+                        }
+                    }
+                };
+                micRecordingThread.start();
+            }
+        }
+
+        if(intent.getExtras().get("gps-enabled").equals(true)){
+            if(locationManager == null && locationListener == null){
+                locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+                locationListener = new MyLocationListener();
+                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 4000, 0, locationListener);
+            }
+        }
+
 
         Log.i("OSApp", "running background service");
 
@@ -55,19 +105,54 @@ public class BackgroundService extends Service {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            Log.i("OSApp", "bt-service: onReceive");
-            if(action.equals(BluetoothDevice.ACTION_FOUND)){
+            if(action.equals(BluetoothDevice.ACTION_FOUND) && !intent.getExtras().isEmpty()){
                 Log.i("OSApp", "bt-service: ACTION_FOUND");
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                String deviceName =  device.getName() + "\n" + device.getAddress();
 
-                for(String d : devicesList){
-                    if(!deviceName.equals(d)){
+                if(device == null){
+                    return;
+                } else{
+                    String deviceName =  device.getAddress();
+
+                    if(devicesList.isEmpty()){
                         devicesList.add(deviceName);
-                        Log.i("OSApp", "bt-service: FOUND NEW DEVICE " + deviceName);
+                    }
+
+                    for(String d : devicesList){
+                        if(!deviceName.equals(d)){
+                            devicesList.add(deviceName);
+                            Log.i("OSApp", "bt-service: FOUND NEW DEVICE " + deviceName);
+                        }
                     }
                 }
             }
         }
     };
+
+    public class MyLocationListener implements LocationListener{
+
+        @Override
+        public void onLocationChanged(Location location) {
+            latitude = location.getLatitude();
+            longitude = location.getLongitude();
+            altitude = location.getAltitude();
+
+            Log.i("OSApp", "Current Latitude: " + latitude + "/ Current Longitude: " + longitude + "/ Current Altitude: " + altitude);
+        }
+
+        @Override
+        public void onStatusChanged(String s, int i, Bundle bundle) {
+
+        }
+
+        @Override
+        public void onProviderEnabled(String s) {
+
+        }
+
+        @Override
+        public void onProviderDisabled(String s) {
+
+        }
+    }
 }
