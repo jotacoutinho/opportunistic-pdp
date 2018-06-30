@@ -117,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
                     intent.putExtra("gps-enabled", false);
                 }
                 startService(intent);
+
                 finish();
             }
         });

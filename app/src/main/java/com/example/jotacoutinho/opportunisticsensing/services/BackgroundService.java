@@ -21,6 +21,7 @@ import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import com.example.jotacoutinho.opportunisticsensing.R;
+import com.example.jotacoutinho.opportunisticsensing.entity.SensingData;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,12 +30,14 @@ import java.util.List;
 public class BackgroundService extends Service {
 
     private BluetoothAdapter adapter;
-    private List<String> devicesList = new ArrayList<String>();
     Thread micRecordingThread;
     private MediaRecorder recorder = null;
     private LocationManager locationManager = null;
     private LocationListener locationListener = null;
-    double latitude, longitude, altitude = 0;
+    private double currentTimestamp, lastTimestamp = 0;
+
+    private ArrayList<String> devicesList = new ArrayList<String>();
+    double latitude, longitude, altitude, amplitude = 0;
 
     @Nullable
     @Override
@@ -94,6 +97,11 @@ public class BackgroundService extends Service {
             }
         }
 
+        //Create 1 SensingData object every 15s
+        if(!(currentTimestamp < lastTimestamp + 15)){
+            SensingData lastSensing = new SensingData(latitude, longitude, altitude, devicesList, amplitude);
+            //sendBroadcast();
+        }
 
         Log.i("OSApp", "running background service");
 
