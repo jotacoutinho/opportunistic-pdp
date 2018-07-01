@@ -31,10 +31,13 @@ public class BackgroundService extends Service {
 
     private BluetoothAdapter adapter;
     Thread micRecordingThread;
+    Thread connectionThread;
     private MediaRecorder recorder = null;
     private LocationManager locationManager = null;
     private LocationListener locationListener = null;
-    private double currentTimestamp, lastTimestamp = 0;
+    private Long lastTimestamp = 0l;
+
+    public static final String BROADCAST = "data-broadcast";
 
     private ArrayList<String> devicesList = new ArrayList<String>();
     double latitude, longitude, altitude, amplitude = 0;
@@ -44,20 +47,50 @@ public class BackgroundService extends Service {
     public IBinder onBind(Intent intent) {
         return null;
     }
-    
+
+    @Override
+    public void onCreate() throws SecurityException {
+        super.onCreate();
+
+        //first timestamp
+        lastTimestamp = System.currentTimeMillis()/1000;
+
+        //thread to handle server-client connection (send collected data)
+        connectionThread = new Thread(){
+            @Override
+            public void run() {
+                if (!((System.currentTimeMillis()/1000 + 15) - lastTimestamp >= 15)) {
+                    //get maxAmplitude and reset recorder
+                    amplitude = recorder.getMaxAmplitude();
+                    recorder.stop();
+                    recorder.release();
+                    recorder = null;
+
+                    SensingData lastSensing = new SensingData(latitude, longitude, altitude, devicesList, amplitude);
+                    Intent intent = new Intent(BROADCAST);
+                    intent.putExtra("data", lastSensing);
+                    sendBroadcast(intent);
+                }
+            }
+        };
+
+        connectionThread.start();
+    }
+
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) throws SecurityException {
-        // do your jobs here
-
         if(intent.getExtras() == null){
             Log.i("OSApp", "no options selected");
             return START_NOT_STICKY;
         }
 
+        // period control
+        lastTimestamp = System.currentTimeMillis()/1000;
+
+        //setup for bluetooth discovery
         if(intent.getExtras().get("bt-enabled").equals(true)){
             adapter = BluetoothAdapter.getDefaultAdapter();
-
             adapter.startDiscovery();
 
             IntentFilter filter = new IntentFilter();
@@ -66,6 +99,7 @@ public class BackgroundService extends Service {
             registerReceiver(btReceiver, filter);
         }
 
+        //setup for microphone recording thread
         if(intent.getExtras().get("mic-enabled").equals(true)){
             if(recorder == null){
                 micRecordingThread = new Thread() {
@@ -73,6 +107,7 @@ public class BackgroundService extends Service {
                     public void run() {
                         recorder = new MediaRecorder();
                         try{
+                            //configuring recorder to save file osappsensoring.3gp at /storage/emulated/0/Android/data/com.example.jotacoutinho.opportunisticsensing/cache
                             recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
                             recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
                             recorder.setOutputFile(getExternalCacheDir().getAbsolutePath() + "/osappsensoring.3gp");
@@ -89,6 +124,7 @@ public class BackgroundService extends Service {
             }
         }
 
+        //setup for gps coordinates
         if(intent.getExtras().get("gps-enabled").equals(true)){
             if(locationManager == null && locationListener == null){
                 locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
@@ -97,17 +133,12 @@ public class BackgroundService extends Service {
             }
         }
 
-        //Create 1 SensingData object every 15s
-        if(!(currentTimestamp < lastTimestamp + 15)){
-            SensingData lastSensing = new SensingData(latitude, longitude, altitude, devicesList, amplitude);
-            //sendBroadcast();
-        }
-
         Log.i("OSApp", "running background service");
 
         return START_STICKY;
     }
 
+    //this receiver handles the list of discovered devices to populate the list
     private final BroadcastReceiver btReceiver = new BroadcastReceiver(){
 
         @Override
@@ -137,6 +168,7 @@ public class BackgroundService extends Service {
         }
     };
 
+    //this listener gets updated coordinates every 4s (in theory, but the service runs in background, which is called whenever the OS wants).
     public class MyLocationListener implements LocationListener{
 
         @Override
@@ -150,17 +182,14 @@ public class BackgroundService extends Service {
 
         @Override
         public void onStatusChanged(String s, int i, Bundle bundle) {
-
         }
 
         @Override
         public void onProviderEnabled(String s) {
-
         }
 
         @Override
         public void onProviderDisabled(String s) {
-
         }
     }
 }

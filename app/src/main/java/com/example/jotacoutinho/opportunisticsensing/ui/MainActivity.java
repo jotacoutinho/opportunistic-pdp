@@ -48,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
         startButtonView.getLayoutParams().height = 135;
         startButtonView.getLayoutParams().height = 135;
 
+        //switch listener to activate bluetooth sensing
         bluetoothSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
@@ -68,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        //switch listener to activate microphone sensing
         microphoneSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
@@ -81,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        //switch listener to activate gps sensing
         gpsSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
@@ -98,6 +101,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        //runs the service
         startButtonView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -117,11 +121,14 @@ public class MainActivity extends AppCompatActivity {
                     intent.putExtra("gps-enabled", false);
                 }
                 startService(intent);
-
                 finish();
             }
         });
     }
+
+    //Either bluetooh, microphone and gps need user's permissions, which are handled below
+    //
+    //
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
