@@ -22,6 +22,8 @@
         </activity>
         <service android:name=".services.BackgroundService">
         </service>
+        <service android:name=".services.ConnectionService">
+        </service>
     </application>
 
 

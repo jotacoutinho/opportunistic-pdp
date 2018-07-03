@@ -32,12 +32,13 @@ public class BackgroundService extends Service {
     private BluetoothAdapter adapter;
     Thread micRecordingThread;
     Thread connectionThread;
-    private MediaRecorder recorder = null;
+    public MediaRecorder recorder = null;
     private LocationManager locationManager = null;
     private LocationListener locationListener = null;
     private Long lastTimestamp = 0l;
 
     public static final String BROADCAST = "data-broadcast";
+    public static boolean isOSRunning = false;
 
     private ArrayList<String> devicesList = new ArrayList<String>();
     double latitude, longitude, altitude, amplitude = 0;
@@ -52,38 +53,54 @@ public class BackgroundService extends Service {
     public void onCreate() throws SecurityException {
         super.onCreate();
 
+        isOSRunning = true;
+
         //first timestamp
         lastTimestamp = System.currentTimeMillis()/1000;
+
+        //starting connection service
+        final Intent connIntent = new Intent(getApplicationContext(), ConnectionService.class);
+        startService(connIntent);
 
         //thread to handle server-client connection (send collected data)
         connectionThread = new Thread(){
             @Override
             public void run() {
-                if (!((System.currentTimeMillis()/1000 + 15) - lastTimestamp >= 15)) {
-                    //get maxAmplitude and reset recorder
-                    amplitude = recorder.getMaxAmplitude();
-                    recorder.stop();
-                    recorder.release();
-                    recorder = null;
+                while(isOSRunning){
+                    //if (!((System.currentTimeMillis()/1000 + 15) - lastTimestamp >= 15)) {
+                    try {
+                        Thread.sleep(15000);
 
-                    SensingData lastSensing = new SensingData(latitude, longitude, altitude, devicesList, amplitude);
-                    Intent intent = new Intent(BROADCAST);
-                    intent.putExtra("data", lastSensing);
-                    sendBroadcast(intent);
-                }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    //get maxAmplitude and reset recorder
+                        amplitude = recorder.getMaxAmplitude();
+
+                        recorder.stop();
+                        recorder.release();
+                        recorder = null;
+                        micRecordingThread.start();
+
+                        SensingData lastSensing = new SensingData(latitude, longitude, altitude, devicesList, amplitude);
+                        Log.i("OSApp", lastSensing.toString());
+
+                        Intent intent = new Intent(BROADCAST);
+                        intent.putExtra("data", lastSensing);
+                        sendBroadcast(intent);
+                    }
             }
         };
-
         connectionThread.start();
     }
 
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) throws SecurityException {
-        if(intent.getExtras() == null){
-            Log.i("OSApp", "no options selected");
-            return START_NOT_STICKY;
-        }
+//        if(intent.getExtras() == null){
+//            Log.i("OSApp", "no options selected");
+//            return START_NOT_STICKY;
+//        }
 
         // period control
         lastTimestamp = System.currentTimeMillis()/1000;
@@ -110,11 +127,15 @@ public class BackgroundService extends Service {
                             //configuring recorder to save file osappsensoring.3gp at /storage/emulated/0/Android/data/com.example.jotacoutinho.opportunisticsensing/cache
                             recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
                             recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-                            recorder.setOutputFile(getExternalCacheDir().getAbsolutePath() + "/osappsensoring.3gp");
-                            Log.i("OSApp", getExternalCacheDir().getAbsolutePath());
                             recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+                            recorder.setAudioSamplingRate(8000);
+                            recorder.setAudioEncodingBitRate(12200);
+                            recorder.setOutputFile(getExternalCacheDir().getAbsolutePath() + "/osappsensoring.3gp");
+
                             recorder.prepare();
                             recorder.start();
+                            //this method returns the max value since its last call, so we need to call it a first time
+                            Log.i("OSApp", "first call max ampl: " + recorder.getMaxAmplitude());
                         } catch(IOException e){
                             e.printStackTrace();
                         }

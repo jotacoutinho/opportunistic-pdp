@@ -21,6 +21,7 @@ import android.widget.Toast;
 
 import com.example.jotacoutinho.opportunisticsensing.R;
 import com.example.jotacoutinho.opportunisticsensing.services.BackgroundService;
+import com.example.jotacoutinho.opportunisticsensing.services.ConnectionService;
 
 public class MainActivity extends AppCompatActivity {
 

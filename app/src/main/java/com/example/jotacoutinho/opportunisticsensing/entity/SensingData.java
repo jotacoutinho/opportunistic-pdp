@@ -17,4 +17,9 @@ public class SensingData implements Serializable {
         this.devices = d;
         this.micAmpl = m;
     }
+
+    @Override
+    public String toString() {
+        return "SensingData={latitude=" + latitude + ", longitude=" + longitude + ", altitude=" + altitude + ", devices=" + devices + ", micAmpl=" + micAmpl + "}";
+    }
 }
